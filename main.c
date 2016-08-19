@@ -103,6 +103,10 @@ int main(int argc, char ** argv)
 {
   tokenizer_t t = mk_tokenizer(argv[1]);
   while (cur_tok(t).kind != tok_eof) {	/* EOFまで */
+    if (cur_tok(t).kind == tok_newline) {
+      printf("\n");
+      next_tok(t);
+    }
     int x = eat_int(t);			/* 数を読む. 違ったエラー */
     while (cur_tok(t).kind != tok_newline) { /* 改行まで ... */
       eat_plus(t);		/* +を読む. 違ったエラー */
