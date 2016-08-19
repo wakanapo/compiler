@@ -19,14 +19,30 @@ typedef struct token
 typedef struct tokenizer
 {
   token tok;     /* 最後に読んだ字句 */
-  int c;     
+  int c;
+  int line;
+  int word;
+  char str[50];
   FILE *fp;
 } * tokenizer_t;
 
 token next_tok(tokenizer_t t);
 
 void syntax_error(tokenizer_t t) {
-  printf("%c is syntax error\n", t->c);
+  int i;
+  char ch = t->c;
+  printf("syntax error:%d:%d\n", t->line, t->word);
+  for (i = 0; i < t->word; i++)
+    printf("%c", t->str[i]);
+  while (ch != '\n') {
+    printf("%c", ch);
+    ch = fgetc(t->fp);
+  }
+  printf("\n");
+  for (i = 0; i < t->word - 1; i++)
+    printf(" ");
+  printf("^\n");
+  exit(1);
 }
 
 tokenizer_t mk_tokenizer(char * filename)
@@ -36,8 +52,11 @@ tokenizer_t mk_tokenizer(char * filename)
   if (t->fp == NULL) {
     perror("fopen");
     exit(1);
-  }  
+  }
+  t->line = 1;
+  t->word = 1;
   t->c = fgetc(t->fp);
+  t->str[t->word - 1] = t->c;
   t->tok = next_tok(t);
   return t;
 }
@@ -51,15 +70,22 @@ token next_tok(tokenizer_t t)
 {
   char digit[10];
   int i = 0;
-  while (t->c == ' ')
+  while (t->c == ' ') {
+    t->word++;
+    t->str[t->word - 1] = t->c;
     t->c = fgetc(t->fp);
+  }
   if (t->c == '+') {
     t->tok.kind = tok_plus;
+    t->word++;
+    t->str[t->word - 1] = t->c;
     t->c = fgetc(t->fp);
   }
   else if (t->c == '\n') {
     t->tok.kind = tok_newline;
-     t->c = fgetc(t->fp);
+    t->line++;
+    t->word = 0;
+    t->c = fgetc(t->fp);
   }
   else if (t->c == EOF) {
     t->tok.kind = tok_eof;
@@ -68,6 +94,8 @@ token next_tok(tokenizer_t t)
     while (isdigit(t->c)) {
       if (i == 9) syntax_error(t);
       digit[i] = t->c;
+      t->word++;
+      t->str[t->word - 1] = t->c;
       t->c = fgetc(t->fp);
       i++;
     }
